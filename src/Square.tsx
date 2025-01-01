@@ -1,6 +1,10 @@
 import { PieceType, FancyPiece } from "./utilities";
 
-type selectionStateType = "selected" | "unselected" | "highlighted";
+export type selectionStateType =
+  | "selected"
+  | "unselected"
+  | "highlighted"
+  | "capturable";
 
 export default function Square({
   piece,
@@ -13,32 +17,39 @@ export default function Square({
   selectionState: selectionStateType;
   onClick: any;
 }) {
-  const className = getClassName(idx, selectionState);
+  const className = getClassName(idx);
   return (
     <button className={className} onClick={onClick}>
-      {/* {idx} */}
-      {piece && FancyPiece[piece]}
+      <div className={getHighlightingClass(idx, selectionState)}>
+        <span className="inline-block">{piece && FancyPiece[piece]}</span>
+      </div>
     </button>
   );
 }
 
-function getClassName(idx: number, selectionState: selectionStateType) {
-  let className =
-    "chess size-10 rounded-none text-black text-4xl border-indigo-500 hover:border-2";
+function getClassName(idx: number) {
+  const className = "chess size-10 rounded-none text-black text-4xl";
   const defaultColorClass =
     (idx + Math.trunc(idx / 8)) % 2 === 0 ? "bg-white" : "bg-slate-400"; // Implements the checkerboard pattern
-  let colorClass;
+  return className + " " + defaultColorClass;
+}
+
+function getHighlightingClass(idx: number, selectionState: selectionStateType) {
+  const className = "size-10 border-indigo-500 hover:border-2";
+  let colorsClass;
   switch (selectionState) {
     case "selected":
-      colorClass = "bg-yellow-200";
+      colorsClass = "bg-opacity-50 bg-green-300";
+      break;
+    case "unselected":
+      colorsClass = "bg-opacity-0";
       break;
     case "highlighted":
-      colorClass = "bg-green-300";
+      colorsClass = "bg-opacity-50 bg-yellow-200";
       break;
-    default:
-      colorClass = defaultColorClass;
+    case "capturable":
+      colorsClass = "bg-opacity-50 bg-red-200";
       break;
   }
-  className = className + " " + colorClass;
-  return className;
+  return className + " " + colorsClass;
 }

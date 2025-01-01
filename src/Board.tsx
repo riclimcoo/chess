@@ -1,5 +1,5 @@
-import { useState } from "react";
-import Square from "./Square";
+import { act, useState } from "react";
+import Square, { selectionStateType } from "./Square";
 import { PieceType } from "./utilities";
 import BoardModel from "./model/BoardModel";
 
@@ -38,10 +38,20 @@ export function Board({
     }
   }
 
-  function handleState(idx: number) {
+  function handleState(idx: number): selectionStateType {
+    if (activeSquare == undefined) {
+      return "unselected";
+    }
     if (activeSquare == idx) {
       return "selected";
-    } else if (highlightedSquares.includes(idx)) {
+    } else if (
+      highlightedSquares.includes(idx) &&
+      (board[idx] ||
+        (boardModel.enPassantPos?.toIdx === idx &&
+          boardModel.at(activeSquare)?.rank === "p"))
+    ) {
+      return "capturable";
+    } else if (highlightedSquares.includes(idx) && board[idx] === undefined) {
       return "highlighted";
     } else {
       return "unselected";
