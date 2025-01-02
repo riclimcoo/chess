@@ -10,6 +10,7 @@ import {
   PieceType,
   playerColor,
   quot,
+  rank,
   STAR,
 } from "../utilities";
 
@@ -29,7 +30,7 @@ export default class BoardModel {
   };
 
   constructor(fen = "rnbqkbnr/pppppppp/8/8/8/8/PPPPPPPP/RNBQKBNR") {
-    // fen = "r3k2r/8/8/8/8/8/8/R3K2R";
+    fen = "r3k2r/8/8/8/8/8/8/R3K2R";
     this.board = Array(64);
     this.readFen(fen);
     this.activePlayer = "white";
@@ -69,6 +70,10 @@ export default class BoardModel {
     return this.board.map((p) => (p ? p.type : undefined));
   }
 
+  get inactivePlayer() {
+    return this.activePlayer === "white" ? "black" : "white";
+  }
+
   at(idx: number) {
     return this.board[idx];
   }
@@ -96,7 +101,7 @@ export default class BoardModel {
       }
       candidatePos = candidatePos.add(disp);
     }
-    return candidateArr;
+    return candidateArr.map((p) => p.toIdx);
   }
 
   private seekFromDispArr(pos: Position, disps: Array<disp>) {
@@ -104,16 +109,24 @@ export default class BoardModel {
   }
 
   private sweepFromDispArr(pos: Position, dispArr: Array<disp>) {
-    return dispArr.map((disp) => pos.add(disp)).filter((p) => p.isValid);
+    const piece = this.atPos(pos);
+    if (piece == undefined) {
+      return [];
+    }
+    const myColor = piece.color;
+    return dispArr
+      .map((disp) => pos.add(disp))
+      .filter((p) => p.isValid)
+      .map((p) => p.toIdx)
+      .filter((p) => {
+        const piece = this.at(p);
+        return piece === undefined || piece.color !== myColor;
+      });
   }
 
   _place(piece: Piece | undefined, dest_idx: number) {
     this.board[dest_idx] = piece;
   }
-
-  // private placeAtPos(piece: Piece | undefined, pos: Position) {
-  //   this.board[pos.x + pos.y * 8] = piece;
-  // }
 
   private get copy() {
     const copy = new BoardModel();
@@ -153,7 +166,7 @@ export default class BoardModel {
     this._place(undefined, mover_idx);
   }
 
-  play(mover_idx: number, dest_idx: number) {
+  play(mover_idx: number, dest_idx: number, promoRank: rank = "q") {
     const piece = this.at(mover_idx);
     const pos = Position.fromIdx(mover_idx);
     if (piece === undefined) {
@@ -164,13 +177,17 @@ export default class BoardModel {
       return;
     }
 
-    // promotion and MOVE
+    // promotion
     const lastRow = piece.color === "white" ? 0 : 7;
     if (piece.rank === "p" && quot(dest_idx, 8) === lastRow) {
-      const q = piece.color === "white" ? "Q" : "q";
-      this._place(new Piece(q), dest_idx);
+      const promoPiece = (
+        piece.color === "white" ? promoRank.toUpperCase() : promoRank
+      ) as PieceType;
+      this._place(new Piece(promoPiece), dest_idx);
       this._place(undefined, mover_idx);
-    } else {
+    }
+    // move
+    else {
       this.move(mover_idx, dest_idx);
     }
     // move must go before en passant memo
@@ -210,29 +227,18 @@ export default class BoardModel {
       this.castlingRights[piece.color].kingSide = false;
     }
 
-    this.activePlayer = flipColor(this.activePlayer);
+    this.activePlayer = this.inactivePlayer;
   }
 
-  // private forward(pos: Position, d: number) {
-  //   const piece = this.atPos(pos);
-  //   if (piece === undefined) return;
-  //   const forwardDir = piece.color == "white" ? -1 : 1;
-  //   return pos.add([0, d * forwardDir]);
-  // }
-
-  controlledSquares(idx: number) {
-    const activePiece = this.at(idx);
-    if (activePiece === undefined) {
-      return [];
-    }
-    const pos = Position.fromIdx(idx);
-    const forwardDir = activePiece.color == "white" ? -1 : 1;
+  controlledSquares(piece: Piece, posIdx: number) {
+    const pos = Position.fromIdx(posIdx);
+    const forwardDir = piece.color == "white" ? -1 : 1;
     const PAWN_V = [
       [1, forwardDir],
       [-1, forwardDir],
     ] as Array<disp>;
 
-    switch (activePiece.rank) {
+    switch (piece.rank) {
       case "p":
         return this.sweepFromDispArr(pos, PAWN_V);
 
@@ -255,41 +261,53 @@ export default class BoardModel {
 
   validSquares(idx: number) {
     const activePiece = this.at(idx);
-    if (activePiece === undefined || activePiece.color !== this.activePlayer) {
-      return [];
-    }
-    const myColor = activePiece.color;
-    const squaresToCheck = this.validSquaresWithoutCheckingForChecks(idx);
-    const newValidSquares: Array<number> = [];
-    for (const destIdx of squaresToCheck) {
-      const tempGame = this.copy;
-      tempGame.move(idx, destIdx);
-      if (!tempGame.underCheck(myColor)) {
-        newValidSquares.push(destIdx);
-      }
-    }
-
-    // Castle Logic
-    if (activePiece.rank === "k") {
-      const pos = Position.fromIdx(idx);
-      if (this.canCastle(myColor, "queenSide")) {
-        newValidSquares.push(pos.add([-2, 0]).toIdx);
-      }
-      if (this.canCastle(myColor, "kingSide")) {
-        newValidSquares.push(pos.add([2, 0]).toIdx);
-      }
-    }
-
-    return newValidSquares;
-  }
-
-  validSquaresWithoutCheckingForChecks(idx: number) {
-    const activePiece = this.at(idx);
     if (activePiece === undefined) {
       return [];
     }
-    const pos = Position.fromIdx(idx);
     const myColor = activePiece.color;
+    const pos = Position.fromIdx(idx);
+
+    let validSquares;
+    switch (activePiece.rank) {
+      case "p":
+        validSquares = this.pawnValidSquares(idx);
+        break;
+      case "k":
+        // castle logic
+        validSquares = this.controlledSquares(activePiece, idx);
+        if (this.canCastle(myColor, "queenSide")) {
+          validSquares.push(pos.add([-2, 0]).toIdx);
+        }
+        if (this.canCastle(myColor, "kingSide")) {
+          validSquares.push(pos.add([2, 0]).toIdx);
+        }
+        break;
+      default:
+        // controlled squares are the same as valid squares for most pieces
+        validSquares = this.controlledSquares(activePiece, idx);
+        break;
+    }
+
+    // Filter out the moves that cause checks
+    validSquares = validSquares.filter(
+      (destIdx) => !this.causesCheck(idx, destIdx, myColor)
+    );
+
+    return validSquares;
+  }
+
+  causesCheck(moverIdx: number, destIdx: number, color: playerColor) {
+    const tempGame = this.copy;
+    tempGame.move(moverIdx, destIdx);
+    return tempGame.underCheck(color);
+  }
+
+  private pawnValidSquares(idx: number) {
+    const activePiece = this.at(idx);
+    if (activePiece === undefined || activePiece.rank !== "p") {
+      throw new Error("That's not a pawn.");
+    }
+    const pos = Position.fromIdx(idx);
     const theirColor = activePiece.color === "white" ? "black" : "white";
     const forwardDir = activePiece.color == "white" ? -1 : 1;
     const startingRow = activePiece.color == "white" ? 6 : 1;
@@ -308,45 +326,16 @@ export default class BoardModel {
       );
 
     let arr: Array<Position> = [];
-    switch (activePiece.rank) {
-      case "p":
-        if (this.atPos(posInFront) === undefined) {
-          arr.push(posInFront);
-          if (pos.y === startingRow && this.atPos(posInFront2) === undefined) {
-            arr.push(posInFront2);
-          }
-        }
-        arr = arr.concat(pawnCapturePos);
-        break;
-
-      case "k":
-        // castle
-        if (this.canCastle(myColor, "queenSide")) {
-          arr.push(pos.add([-2, 0]));
-        }
-        if (this.canCastle(myColor, "kingSide")) {
-          arr.push(pos.add([2, 0]));
-        }
-        arr = this.controlledSquares(idx);
-        break;
-      default:
-        arr = this.controlledSquares(idx);
+    arr.push(posInFront);
+    if (pos.y === startingRow && this.atPos(posInFront2) === undefined) {
+      arr.push(posInFront2);
     }
-    arr = arr.filter((pos) => this.atPos(pos)?.color !== myColor);
+    arr = arr.concat(pawnCapturePos);
+    // arr = arr.filter((pos) => this.atPos(pos)?.color !== myColor);
     return arr.map((pos) => pos.toIdx);
   }
 
-  // where(pieceType: PieceType) {
-  //   for (let i = 0; i < 64; i++) {
-  //     const piece = this.at(i);
-  //     if (piece && piece.type == pieceType) {
-  //       return i;
-  //     }
-  //   }
-  //   return undefined;
-  // }
-
-  findKing(color: playerColor) {
+  findKingIdx(color: playerColor) {
     for (let i = 0; i < 64; i++) {
       const piece = this.at(i);
       if (piece && piece.color === color && piece.rank === "k") {
@@ -357,31 +346,7 @@ export default class BoardModel {
   }
 
   underCheck(color: playerColor) {
-    let kingIdx;
-    for (let i = 0; i < 64; i++) {
-      const piece = this.at(i);
-      if (piece && piece.color === color && piece.rank === "k") {
-        kingIdx = i;
-        break;
-      }
-    }
-    if (kingIdx === undefined) {
-      console.error("King not found.");
-      return false;
-    }
-    for (let i = 0; i < 64; i++) {
-      const piece = this.at(i);
-      if (
-        piece &&
-        piece.color !== color &&
-        this.controlledSquares(i)
-          .map((x) => x.toIdx)
-          .includes(kingIdx)
-      ) {
-        return true;
-      }
-    }
-    return false;
+    return !this.safe(this.findKingIdx(color), color);
   }
 
   safe(idx: number, color: playerColor) {
@@ -390,9 +355,7 @@ export default class BoardModel {
       if (
         piece &&
         piece.color === flipColor(color) &&
-        this.controlledSquares(i)
-          .map((x) => x.toIdx)
-          .includes(idx)
+        this.controlledSquares(piece, i).includes(idx)
       ) {
         return false;
       }
@@ -401,8 +364,12 @@ export default class BoardModel {
   }
 
   canCastle(color: playerColor, side: "queenSide" | "kingSide") {
-    const kingIdx = this.findKing(color);
+    if (this.castlingRights[color][side] === false) {
+      return false;
+    }
 
+    const kingIdx = this.findKingIdx(color);
+    const pos = Position.fromIdx(kingIdx);
     const disps: Array<disp> =
       side === "queenSide"
         ? [
@@ -414,11 +381,6 @@ export default class BoardModel {
             [1, 0],
             [2, 0],
           ];
-
-    if (this.castlingRights[color][side] === false) {
-      return false;
-    }
-    const pos = Position.fromIdx(kingIdx);
     return disps
       .map((disp) => pos.add(disp).toIdx)
       .every((p) => this.at(p) === undefined && this.safe(p, color));

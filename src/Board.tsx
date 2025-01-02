@@ -1,42 +1,55 @@
-import { act, useState } from "react";
+import { useEffect, useRef, useState } from "react";
 import Square, { selectionStateType } from "./Square";
 import { PieceType } from "./utilities";
 import BoardModel from "./model/BoardModel";
 
-export function Board({
-  activeSquare,
-  setActiveSquare,
-  boardModel,
-  highlightedSquares,
-  setHighlightedSquares,
-}: {
-  activeSquare: number | null;
-  setActiveSquare: (x: number | null) => void;
-  boardModel: BoardModel;
-  highlightedSquares: Array<number>;
-  setHighlightedSquares: (x: Array<number>) => void;
-}) {
+export function Board({ boardModel }: { boardModel: BoardModel }) {
   const [board, setBoard] = useState<Array<PieceType | undefined>>(
     boardModel.flat
   );
+  const boardRef = useRef<any>(null);
+  const [activeSquare, setActiveSquare] = useState<number | null>(null);
+  const [highlightedSquares, setHighlightedSquares] = useState<Array<number>>(
+    []
+  );
+  function clearHighlighting() {
+    setActiveSquare(null);
+    setHighlightedSquares([]);
+  }
 
-  function handleClick(newIdx: number) {
-    console.log(boardModel.canCastle("black", "queenSide"));
-    function clear() {
-      setActiveSquare(null);
-      setHighlightedSquares([]);
-    }
-    if (activeSquare == null) {
-      setActiveSquare(newIdx);
-      setHighlightedSquares(boardModel.validSquares(newIdx));
-    } else if (highlightedSquares.includes(newIdx)) {
-      boardModel.play(activeSquare, newIdx);
-      setBoard(boardModel.flat);
-      clear();
+  function handleClick(clickedIdx: number) {
+    if (activeSquare !== null && activeSquare === clickedIdx) {
+      clearHighlighting();
+    } else if (
+      activeSquare === null ||
+      !highlightedSquares.includes(clickedIdx)
+    ) {
+      setActiveSquare(clickedIdx);
+      setHighlightedSquares(boardModel.validSquares(clickedIdx));
     } else {
-      clear();
+      boardModel.play(activeSquare, clickedIdx);
+      updateBoard();
+      clearHighlighting();
     }
   }
+
+  function updateBoard() {
+    setBoard(boardModel.flat);
+    clearHighlighting();
+  }
+
+  function handleClickOutside(e: MouseEvent) {
+    if (!boardRef.current?.contains(e.target)) {
+      clearHighlighting();
+    }
+  }
+
+  useEffect(() => {
+    document.addEventListener("mousedown", handleClickOutside);
+    return () => {
+      document.removeEventListener("mousedown", handleClickOutside);
+    };
+  });
 
   function handleState(idx: number): selectionStateType {
     if (activeSquare == undefined) {
@@ -59,7 +72,7 @@ export function Board({
   }
 
   return (
-    <div className="grid grid-cols-8 shadow-md">
+    <div className="grid grid-cols-8 shadow-md" ref={boardRef}>
       {[...Array(64)].map((_, idx) => (
         <Square
           piece={board.at(idx)}

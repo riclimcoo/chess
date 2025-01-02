@@ -20,7 +20,7 @@ export default function Square({
   const className = getClassName(idx);
   return (
     <button className={className} onClick={onClick}>
-      <div className={getHighlightingClass(idx, selectionState)}>
+      <div className={getHighlightingClass(selectionState)}>
         <span className="inline-block">{piece && FancyPiece[piece]}</span>
       </div>
     </button>
@@ -34,7 +34,7 @@ function getClassName(idx: number) {
   return className + " " + defaultColorClass;
 }
 
-function getHighlightingClass(idx: number, selectionState: selectionStateType) {
+function getHighlightingClass(selectionState: selectionStateType) {
   const className = "size-10 border-indigo-500 hover:border-2";
   let colorsClass;
   switch (selectionState) {
