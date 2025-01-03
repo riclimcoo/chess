@@ -1,6 +1,6 @@
 import { useEffect, useRef, useState } from "react";
 import Square, { selectionStateType } from "./Square";
-import { PieceType } from "./utilities";
+import { PieceType } from "./model/utilities";
 import BoardModel from "./model/BoardModel";
 
 export function Board({ boardModel }: { boardModel: BoardModel }) {
@@ -52,10 +52,9 @@ export function Board({ boardModel }: { boardModel: BoardModel }) {
   });
 
   function handleState(idx: number): selectionStateType {
-    if (activeSquare == undefined) {
+    if (activeSquare === null) {
       return "unselected";
-    }
-    if (activeSquare == idx) {
+    } else if (activeSquare === idx) {
       return "selected";
     } else if (
       highlightedSquares.includes(idx) &&

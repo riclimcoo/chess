@@ -1,5 +1,5 @@
-import { Piece } from "../Piece";
-import { disp, Position } from "../Position";
+import { Piece } from "./Piece";
+import { disp, Position } from "./Position";
 import {
   DIAG,
   flipColor,
@@ -12,7 +12,7 @@ import {
   quot,
   rank,
   STAR,
-} from "../utilities";
+} from "./utilities";
 
 export default class BoardModel {
   board: Array<Piece | undefined>;
@@ -58,7 +58,7 @@ export default class BoardModel {
       } else if (isPieceChar(ch)) {
         this.board[i + j * 8] = new Piece(ch as PieceType);
         i += 1;
-      } else if (ch == "/") {
+      } else if (ch === "/") {
         i = 0;
         j += 1;
       }
@@ -86,7 +86,7 @@ export default class BoardModel {
     let candidatePos = pos.add(disp);
     const candidateArr = [];
     const piece = this.atPos(pos);
-    if (piece == undefined) {
+    if (piece === undefined) {
       return [];
     }
     const myColor = piece.color;
@@ -96,7 +96,7 @@ export default class BoardModel {
       this.atPos(candidatePos)?.color !== myColor
     ) {
       candidateArr.push(candidatePos);
-      if (this.atPos(candidatePos)?.color == theirColor) {
+      if (this.atPos(candidatePos)?.color === theirColor) {
         break;
       }
       candidatePos = candidatePos.add(disp);
@@ -110,7 +110,7 @@ export default class BoardModel {
 
   private sweepFromDispArr(pos: Position, dispArr: Array<disp>) {
     const piece = this.atPos(pos);
-    if (piece == undefined) {
+    if (piece === undefined) {
       return [];
     }
     const myColor = piece.color;
@@ -146,7 +146,7 @@ export default class BoardModel {
       this.enPassantPos &&
       dest_idx === this.enPassantPos.toIdx
     ) {
-      const forwardDir = piece.color == "white" ? -1 : 1;
+      const forwardDir = piece.color === "white" ? -1 : 1;
       this._place(undefined, this.enPassantPos.add([0, -forwardDir]).toIdx);
     }
     // castle
@@ -194,8 +194,8 @@ export default class BoardModel {
 
     // en passant memo
     {
-      const startingRow = piece.color == "white" ? 6 : 1;
-      const forwardDir = piece.color == "white" ? -1 : 1;
+      const startingRow = piece.color === "white" ? 6 : 1;
+      const forwardDir = piece.color === "white" ? -1 : 1;
       const posInFront = pos.add([0, forwardDir]);
       const posIn2Front = pos.add([0, 2 * forwardDir]);
       if (
@@ -232,7 +232,7 @@ export default class BoardModel {
 
   controlledSquares(piece: Piece, posIdx: number) {
     const pos = Position.fromIdx(posIdx);
-    const forwardDir = piece.color == "white" ? -1 : 1;
+    const forwardDir = piece.color === "white" ? -1 : 1;
     const PAWN_V = [
       [1, forwardDir],
       [-1, forwardDir],
@@ -309,8 +309,8 @@ export default class BoardModel {
     }
     const pos = Position.fromIdx(idx);
     const theirColor = activePiece.color === "white" ? "black" : "white";
-    const forwardDir = activePiece.color == "white" ? -1 : 1;
-    const startingRow = activePiece.color == "white" ? 6 : 1;
+    const forwardDir = activePiece.color === "white" ? -1 : 1;
+    const startingRow = activePiece.color === "white" ? 6 : 1;
     const posInFront = pos.add([0, forwardDir]);
     const posInFront2 = posInFront.add([0, forwardDir]);
     const pawnCapturePos = [

@@ -1,4 +1,4 @@
-import { PieceType, FancyPiece } from "./utilities";
+import { PieceType, FancyPiece } from "./model/utilities";
 
 export type selectionStateType =
   | "selected"
