@@ -14,6 +14,8 @@ import {
   STAR,
 } from "./utilities";
 
+export type GameState = "WHITE WON" | "BLACK WON" | "DRAW" | "ONGOING";
+
 export default class BoardModel {
   board: Array<Piece | undefined>;
   enPassantPos: Position | undefined;
@@ -70,6 +72,28 @@ export default class BoardModel {
       }
       ch = arr.shift();
     }
+  }
+
+  get state(): GameState {
+    if (this.repetitionCount >= 3) {
+      return "DRAW";
+    }
+    if (
+      this.underCheck(this.activePlayer) &&
+      !this.hasValidMoves(this.activePlayer)
+    ) {
+      return this.activePlayer === "black" ? "WHITE WON" : "BLACK WON";
+    }
+    return "ONGOING";
+  }
+
+  private hasValidMoves(color: playerColor) {
+    for (let i = 0; i < 64; i++) {
+      if (this.board[i]?.color === color && this.validSquares(i).length > 0) {
+        return true;
+      }
+    }
+    return false;
   }
 
   get flat() {
@@ -185,7 +209,10 @@ export default class BoardModel {
   }
 
   play(mover_idx: number, dest_idx: number, promoRank: rank = "q") {
-    if (this.isValidMove(mover_idx, dest_idx)) {
+    if (
+      this.isValidMove(mover_idx, dest_idx) &&
+      this.at(mover_idx)?.color === this.activePlayer
+    ) {
       return this.copy._play(mover_idx, dest_idx, promoRank);
     } else {
       console.error("That's not a valid move.");

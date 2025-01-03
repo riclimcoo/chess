@@ -13,8 +13,10 @@ function App() {
     <div>
       <Center>
         <Board boardModel={board} setBoardModel={setBoard} />
-        <div className="bg-slate-200 p-4 rounded-md shadow-md">
-          Repetitions: {board.repetitionCount}
+
+        <div className="flex flex-col bg-slate-200 p-4 rounded-md shadow-md">
+          <p>Game state: {board.state}</p>
+          <p>Repetitions: {board.repetitionCount}</p>
         </div>
         {/* <Modal /> */}
       </Center>
