@@ -39,16 +39,16 @@ function getHighlightingClass(selectionState: selectionStateType) {
   let colorsClass;
   switch (selectionState) {
     case "selected":
-      colorsClass = "bg-opacity-50 bg-green-300";
+      colorsClass = "bg-opacity-80 bg-green-300";
       break;
     case "unselected":
       colorsClass = "bg-opacity-0";
       break;
     case "highlighted":
-      colorsClass = "bg-opacity-50 bg-yellow-200";
+      colorsClass = "bg-opacity-80 bg-yellow-200";
       break;
     case "capturable":
-      colorsClass = "bg-opacity-50 bg-red-200";
+      colorsClass = "bg-opacity-80 bg-red-200";
       break;
   }
   return className + " " + colorsClass;

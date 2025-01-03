@@ -1,13 +1,16 @@
 import { useEffect, useRef, useState } from "react";
 import Square, { selectionStateType } from "./Square";
-import { PieceType } from "./model/utilities";
 import BoardModel from "./model/BoardModel";
 
-export function Board({ boardModel }: { boardModel: BoardModel }) {
-  const [board, setBoard] = useState<Array<PieceType | undefined>>(
-    boardModel.flat
-  );
-  const boardRef = useRef<any>(null);
+export function Board({
+  boardModel,
+  setBoardModel,
+}: {
+  boardModel: BoardModel;
+  setBoardModel: (b: BoardModel) => void;
+}) {
+  const board = boardModel.flat;
+  const boardHtmlRef = useRef<any>(null);
   const [activeSquare, setActiveSquare] = useState<number | null>(null);
   const [highlightedSquares, setHighlightedSquares] = useState<Array<number>>(
     []
@@ -27,19 +30,13 @@ export function Board({ boardModel }: { boardModel: BoardModel }) {
       setActiveSquare(clickedIdx);
       setHighlightedSquares(boardModel.validSquares(clickedIdx));
     } else {
-      boardModel.play(activeSquare, clickedIdx);
-      updateBoard();
+      setBoardModel(boardModel.play(activeSquare, clickedIdx));
       clearHighlighting();
     }
   }
 
-  function updateBoard() {
-    setBoard(boardModel.flat);
-    clearHighlighting();
-  }
-
   function handleClickOutside(e: MouseEvent) {
-    if (!boardRef.current?.contains(e.target)) {
+    if (!boardHtmlRef.current?.contains(e.target)) {
       clearHighlighting();
     }
   }
@@ -71,7 +68,7 @@ export function Board({ boardModel }: { boardModel: BoardModel }) {
   }
 
   return (
-    <div className="grid grid-cols-8 shadow-md" ref={boardRef}>
+    <div className="grid grid-cols-8 shadow-md" ref={boardHtmlRef}>
       {[...Array(64)].map((_, idx) => (
         <Square
           piece={board.at(idx)}

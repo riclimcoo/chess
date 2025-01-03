@@ -1,4 +1,4 @@
-import { useRef } from "react";
+import { useState } from "react";
 // import reactLogo from './assets/react.svg'
 // import viteLogo from '/vite.svg'
 import "./App.css";
@@ -7,15 +7,15 @@ import { Center } from "./Center";
 import BoardModel from "./model/BoardModel";
 
 function App() {
-  const boardModel = useRef<BoardModel | null>(null);
-  if (boardModel.current === null) {
-    boardModel.current = new BoardModel();
-  }
+  const [board, setBoard] = useState<BoardModel>(BoardModel.defaultSetup());
 
   return (
     <div>
       <Center>
-        <Board boardModel={boardModel.current} />
+        <Board boardModel={board} setBoardModel={setBoard} />
+        <div className="bg-slate-200 p-4 rounded-md shadow-md">
+          Repetitions: {board.repetitionCount}
+        </div>
         {/* <Modal /> */}
       </Center>
     </div>

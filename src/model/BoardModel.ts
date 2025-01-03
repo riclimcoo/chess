@@ -28,11 +28,10 @@ export default class BoardModel {
       kingSide: boolean;
     };
   };
+  prev: BoardModel | undefined;
 
-  constructor(fen = "rnbqkbnr/pppppppp/8/8/8/8/PPPPPPPP/RNBQKBNR") {
-    fen = "r3k2r/8/8/8/8/8/8/R3K2R";
+  constructor() {
     this.board = Array(64);
-    this.readFen(fen);
     this.activePlayer = "white";
     this.castlingRights = {
       white: {
@@ -44,6 +43,13 @@ export default class BoardModel {
         kingSide: true,
       },
     };
+    this.prev = undefined;
+  }
+
+  static defaultSetup() {
+    const boardModel = new BoardModel();
+    boardModel.readFen("rnbqkbnr/pppppppp/8/8/8/8/PPPPPPPP/RNBQKBNR");
+    return boardModel;
   }
 
   readFen(fen: string) {
@@ -128,10 +134,22 @@ export default class BoardModel {
     this.board[dest_idx] = piece;
   }
 
-  private get copy() {
+  get copy() {
     const copy = new BoardModel();
     copy.board = this.board.slice();
     copy.enPassantPos = this.enPassantPos;
+    copy.castlingRights = {
+      white: {
+        queenSide: this.castlingRights.white.queenSide,
+        kingSide: this.castlingRights.white.kingSide,
+      },
+      black: {
+        queenSide: this.castlingRights.black.kingSide,
+        kingSide: this.castlingRights.black.queenSide,
+      },
+    };
+    copy.activePlayer = this.activePlayer;
+    copy.prev = this;
     return copy;
   }
 
@@ -167,14 +185,23 @@ export default class BoardModel {
   }
 
   play(mover_idx: number, dest_idx: number, promoRank: rank = "q") {
+    if (this.isValidMove(mover_idx, dest_idx)) {
+      return this.copy._play(mover_idx, dest_idx, promoRank);
+    } else {
+      console.error("That's not a valid move.");
+      return this;
+    }
+  }
+
+  private _play(mover_idx: number, dest_idx: number, promoRank: rank = "q") {
     const piece = this.at(mover_idx);
     const pos = Position.fromIdx(mover_idx);
     if (piece === undefined) {
       console.error("Trying to move an empty piece");
-      return;
+      return this;
     } else if (piece.color !== this.activePlayer) {
       console.error("It's not your turn.");
-      return;
+      return this;
     }
 
     // promotion
@@ -228,6 +255,28 @@ export default class BoardModel {
     }
 
     this.activePlayer = this.inactivePlayer;
+    return this;
+  }
+
+  equal(that: BoardModel) {
+    for (let i = 0; i < 64; i++) {
+      if (this.board[i]?.type !== that.board[i]?.type) {
+        return false;
+      }
+    }
+    return true;
+  }
+
+  get repetitionCount() {
+    let curr: BoardModel | undefined = this;
+    let repCount = 0;
+    while (curr) {
+      if (curr.equal(this)) {
+        repCount += 1;
+      }
+      curr = curr.prev;
+    }
+    return repCount;
   }
 
   controlledSquares(piece: Piece, posIdx: number) {
@@ -294,6 +343,10 @@ export default class BoardModel {
     );
 
     return validSquares;
+  }
+
+  isValidMove(moverIdx: number, destIdx: number) {
+    return this.validSquares(moverIdx).includes(destIdx);
   }
 
   causesCheck(moverIdx: number, destIdx: number, color: playerColor) {

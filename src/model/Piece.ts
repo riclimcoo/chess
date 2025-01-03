@@ -1,6 +1,8 @@
 import { PieceType, rank } from "./utilities";
 
 export class Piece {
+  // ADT
+  // DO NOT MUTATE
   type: PieceType;
   constructor(type: PieceType) {
     this.type = type;
