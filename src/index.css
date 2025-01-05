@@ -1,11 +1,8 @@
 @font-face {
-  font-family: "FreeSans";
-  src: local("FreeSans"), url("./assets/FreeSans.ttf") format("truetype");
-}
-
-@font-face {
   font-family: "FreeSerif";
-  src: local("FreeSerif"), url("./assets/FreeSerif.ttf") format("truetype");
+  src:
+    local("FreeSerif"),
+    url("./assets/FreeSerif.ttf") format("truetype");
 }
 
 :root {

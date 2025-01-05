@@ -14,11 +14,19 @@ import {
   STAR,
 } from "./utilities";
 
-export type GameState = "WHITE WON" | "BLACK WON" | "DRAW" | "ONGOING";
+export type GameState =
+  | "WHITE WON"
+  | "BLACK WON"
+  | "DRAW"
+  | "ONGOING"
+  | "STALEMATE";
+
+type DryBoard = { prev: DryBoard };
 
 export default class BoardModel {
   board: Array<Piece | undefined>;
   enPassantPos: Position | undefined;
+  enPassantColor: playerColor | undefined;
   activePlayer: playerColor;
   castlingRights: {
     white: {
@@ -74,15 +82,43 @@ export default class BoardModel {
     }
   }
 
+  get fen() {
+    let fen = "";
+    let emptySpaces = 0;
+    for (let j = 0; j < 8; j++) {
+      for (let i = 0; i < 8; i++) {
+        const piece = this.at(i + 8 * j);
+        if (piece) {
+          if (emptySpaces > 0) {
+            fen += emptySpaces.toString();
+            emptySpaces = 0;
+          }
+          fen += piece.type;
+        } else {
+          emptySpaces += 1;
+        }
+      }
+      if (emptySpaces > 0) {
+        fen += emptySpaces.toString();
+        emptySpaces = 0;
+      }
+      if (j !== 7) {
+        fen += "/";
+      }
+    }
+    return fen;
+  }
+
   get state(): GameState {
     if (this.repetitionCount >= 3) {
       return "DRAW";
     }
-    if (
-      this.underCheck(this.activePlayer) &&
-      !this.hasValidMoves(this.activePlayer)
-    ) {
-      return this.activePlayer === "black" ? "WHITE WON" : "BLACK WON";
+    if (!this.hasValidMoves(this.activePlayer)) {
+      if (this.underCheck(this.activePlayer)) {
+        return this.activePlayer === "black" ? "WHITE WON" : "BLACK WON";
+      } else {
+        return "STALEMATE";
+      }
     }
     return "ONGOING";
   }
@@ -108,7 +144,7 @@ export default class BoardModel {
     return this.board[idx];
   }
 
-  atPos(pos: Position) {
+  private atPos(pos: Position) {
     return this.board[pos.x + pos.y * 8];
   }
 
@@ -210,13 +246,19 @@ export default class BoardModel {
 
   play(mover_idx: number, dest_idx: number, promoRank: rank = "q") {
     if (
-      this.isValidMove(mover_idx, dest_idx) &&
+      !this.isValidMove(mover_idx, dest_idx) &&
       this.at(mover_idx)?.color === this.activePlayer
     ) {
-      return this.copy._play(mover_idx, dest_idx, promoRank);
-    } else {
-      console.error("That's not a valid move.");
+      BoardModel.notify("That's not a valid move.");
       return this;
+    } else if (!(this.at(mover_idx)?.color === this.activePlayer)) {
+      BoardModel.notify("It's not your turn");
+      return this;
+    } else if (this.at(dest_idx)?.rank === "k") {
+      BoardModel.notify("You cannot capture the King");
+      return this;
+    } else {
+      return this.copy._play(mover_idx, dest_idx, promoRank);
     }
   }
 
@@ -224,10 +266,10 @@ export default class BoardModel {
     const piece = this.at(mover_idx);
     const pos = Position.fromIdx(mover_idx);
     if (piece === undefined) {
-      console.error("Trying to move an empty piece");
+      BoardModel.notify("Trying to move an empty piece");
       return this;
     } else if (piece.color !== this.activePlayer) {
-      console.error("It's not your turn.");
+      BoardModel.notify("It's not your turn.");
       return this;
     }
 
@@ -258,8 +300,10 @@ export default class BoardModel {
         dest_idx === posIn2Front.toIdx
       ) {
         this.enPassantPos = posInFront;
+        this.enPassantColor = piece.color;
       } else {
         this.enPassantPos = undefined;
+        this.enPassantColor = undefined;
       }
     }
 
@@ -402,13 +446,17 @@ export default class BoardModel {
         (p) =>
           p.isValid &&
           (this.atPos(p)?.color === theirColor || // capture enemy
-            (p.eq(this.enPassantPos) && this.atPos(p) === undefined)) // en passant
+            (p.eq(this.enPassantPos) &&
+              this.atPos(p) === undefined &&
+              this.enPassantColor !== activePiece.color)) // en passant
       );
 
     let arr: Array<Position> = [];
-    arr.push(posInFront);
-    if (pos.y === startingRow && this.atPos(posInFront2) === undefined) {
-      arr.push(posInFront2);
+    if (this.atPos(posInFront) === undefined) {
+      arr.push(posInFront);
+      if (pos.y === startingRow && this.atPos(posInFront2) === undefined) {
+        arr.push(posInFront2);
+      }
     }
     arr = arr.concat(pawnCapturePos);
     // arr = arr.filter((pos) => this.atPos(pos)?.color !== myColor);
@@ -464,5 +512,32 @@ export default class BoardModel {
     return disps
       .map((disp) => pos.add(disp).toIdx)
       .every((p) => this.at(p) === undefined && this.safe(p, color));
+  }
+
+  static fromJson(json: string | null) {
+    if (json === null) return null;
+    return this.hydrate(JSON.parse(json));
+  }
+
+  private static hydrate(dryBoard: DryBoard | undefined) {
+    if (dryBoard === undefined || dryBoard === null) {
+      return undefined;
+    }
+    let newObj = new BoardModel();
+    console.log("Creating new");
+    console.log(newObj);
+    const hydratedObj = { ...newObj, ...dryBoard } as BoardModel;
+    Object.setPrototypeOf(hydratedObj, this.prototype);
+    hydratedObj.prev = this.hydrate(dryBoard.prev);
+    hydratedObj.board = hydratedObj.board.map((p) =>
+      p === undefined || p === null ? undefined : new Piece(p.type)
+    );
+    console.log("hydrating");
+    console.log(hydratedObj);
+    return hydratedObj;
+  }
+
+  static notify(msg: string) {
+    console.error(msg);
   }
 }
