@@ -21,12 +21,14 @@ export type GameState =
   | "ONGOING"
   | "STALEMATE";
 
+export type MoveType = "regular" | "promotion" | "capture";
+
 type DryBoard = { prev: DryBoard };
 
 export default class BoardModel {
   board: Array<Piece | undefined>;
   enPassantPos: Position | undefined;
-  enPassantColor: playerColor | undefined;
+  private enPassantColor: playerColor | undefined;
   activePlayer: playerColor;
   castlingRights: {
     white: {
@@ -244,6 +246,15 @@ export default class BoardModel {
     this._place(undefined, mover_idx);
   }
 
+  isPromotion(mover_idx: number, dest_idx: number) {
+    const lastRow = this.at(mover_idx)?.color === "white" ? 0 : 7;
+    if (this.at(mover_idx)?.rank === "p" && quot(dest_idx, 8) === lastRow) {
+      return true;
+    } else {
+      return false;
+    }
+  }
+
   play(mover_idx: number, dest_idx: number, promoRank: rank = "q") {
     if (
       !this.isValidMove(mover_idx, dest_idx) &&
@@ -334,6 +345,12 @@ export default class BoardModel {
       if (this.board[i]?.type !== that.board[i]?.type) {
         return false;
       }
+    }
+    if (
+      this.enPassantPos?.x !== that.enPassantPos?.x ||
+      this.enPassantPos?.y !== that.enPassantPos?.y
+    ) {
+      return false;
     }
     return true;
   }

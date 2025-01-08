@@ -16,18 +16,15 @@ export default function Square({
   // const isWhite = (idx + Math.trunc(idx / 8)) % 2 === 0;
 
   function getClassName(idx: number) {
-    const className =
-      "chess size-10 rounded-none text-black text-4xl min-w-10 box-border ";
+    const className = "chess size-10 rounded-none text-black text-4xl ";
     const defaultColorClass =
-      (idx + Math.trunc(idx / 8)) % 2 === 0
-        ? "bg-white border-white"
-        : "bg-slate-400 border-slate-400"; // Implements the checkerboard pattern
+      (idx + Math.trunc(idx / 8)) % 2 === 0 ? "bg-white" : "bg-slate-400"; // Implements the checkerboard pattern
     return className + " " + defaultColorClass;
   }
 
   function getHighlightingClass(selectionState: selectionStateType) {
     const className =
-      "border-opacity-0 size-10 hover:border-2 border-indigo-500 hover:border-opacity-100 inline-block";
+      "size-10 hover:border-2 border-transparent inline-block box-border hover:border-indigo-500";
 
     let colorsClass;
     switch (selectionState) {

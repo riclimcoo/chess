@@ -1,15 +1,9 @@
 import { useEffect, useRef, useState } from "react";
 import Square, { selectionStateType } from "./Square";
-import BoardModel from "./model/BoardModel";
+import { CtxType } from "./App";
 
-export function Board({
-  boardModel,
-  setBoardModel,
-}: {
-  boardModel: BoardModel;
-  setBoardModel: (b: BoardModel) => void;
-}) {
-  const board = boardModel.flat;
+export function Board({ ctx }: { ctx: CtxType }) {
+  const board = ctx.board.flat;
   const boardHtmlRef = useRef<any>(null);
   const [activeSquare, setActiveSquare] = useState<number | null>(null);
   const [highlightedSquares, setHighlightedSquares] = useState<Array<number>>(
@@ -21,7 +15,6 @@ export function Board({
   }
 
   function handleClick(clickedIdx: number) {
-    console.log(boardModel);
     if (activeSquare !== null && activeSquare === clickedIdx) {
       clearHighlighting();
     } else if (
@@ -29,20 +22,12 @@ export function Board({
       !highlightedSquares.includes(clickedIdx)
     ) {
       setActiveSquare(clickedIdx);
-      setHighlightedSquares(boardModel.validSquares(clickedIdx));
+      setHighlightedSquares(ctx.board.validSquares(clickedIdx));
     } else {
-      const nextBoard = boardModel.play(activeSquare, clickedIdx);
-      setBoardModel(nextBoard);
-      localStorage.setItem("boardModel", JSON.stringify(nextBoard));
-      // update();
+      ctx.play(activeSquare, clickedIdx);
       clearHighlighting();
     }
   }
-
-  // function update() {
-  //   console.log("update");
-  //   localStorage.setItem("boardModel", JSON.stringify(boardModel));
-  // }
 
   function handleClickOutside(e: MouseEvent) {
     if (!boardHtmlRef.current?.contains(e.target)) {
@@ -65,8 +50,8 @@ export function Board({
     } else if (
       highlightedSquares.includes(idx) &&
       (board[idx] ||
-        (boardModel.enPassantPos?.toIdx === idx &&
-          boardModel.at(activeSquare)?.rank === "p"))
+        (ctx.board.enPassantPos?.toIdx === idx &&
+          ctx.board.at(activeSquare)?.rank === "p"))
     ) {
       return "red";
     } else if (highlightedSquares.includes(idx) && board[idx] === undefined) {
