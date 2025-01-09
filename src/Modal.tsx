@@ -37,7 +37,7 @@ export function Modal({ children, modalRef }: any) {
       <dialog ref={modalRef} className="bg-transparent">
         <div className="flex flex-row-reverse">
           <button
-            className="p-0 size-5 bg-red-500 rounded-full text-white shadow-md relative top-2 right-2"
+            className="relative right-2 top-2 size-5 rounded-full bg-red-500 p-0 text-white shadow-md"
             onClick={closeModal as any}
           >
             <XMarkIcon />
@@ -45,7 +45,7 @@ export function Modal({ children, modalRef }: any) {
         </div>
         <div
           ref={innardsRef}
-          className="bg-slate-200 text-black pt-2 pb-4 px-6 rounded-md shadow-md flex flex-col "
+          className="flex flex-col rounded-md bg-slate-200 px-6 pb-4 pt-2 text-black shadow-md"
         >
           <div className="flex flex-row-reverse"></div>
           {children}

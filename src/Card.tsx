@@ -8,7 +8,7 @@ export function Card({
   return (
     <div
       className={
-        "flex flex-col bg-slate-200 p-4 rounded-md shadow-md text-black " +
+        "flex flex-col rounded-md bg-slate-200 p-4 text-black shadow-md " +
         className
       }
     >

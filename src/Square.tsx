@@ -24,7 +24,7 @@ export default function Square({
 
   function getHighlightingClass(selectionState: selectionStateType) {
     const className =
-      "size-10 hover:border-2 border-transparent inline-block box-border hover:border-indigo-500";
+      "size-10 border-2 border-transparent inline-block box-border hover:border-indigo-500";
 
     let colorsClass;
     switch (selectionState) {
@@ -32,7 +32,7 @@ export default function Square({
         colorsClass = "bg-opacity-80 bg-green-300";
         break;
       case "unselected":
-        colorsClass = "bg-opacity-0";
+        colorsClass = "bg-transparent";
         break;
       case "yellow":
         colorsClass = "bg-opacity-80 bg-yellow-200";
@@ -48,7 +48,7 @@ export default function Square({
   return (
     <button className={className} onClick={onClick}>
       <div className={getHighlightingClass(selectionState)}>
-        <span className="inline-block">{piece && FancyPiece[piece]}</span>
+        <span>{piece && FancyPiece[piece]}</span>
       </div>
     </button>
   );
